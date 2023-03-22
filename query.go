@@ -6,14 +6,15 @@ import (
 )
 
 type query struct {
-	eqFilter    map[string]string
-	nEqFilter   map[string]string
-	inFilter    map[string]string
-	nNullFilter []string
-	sort        []string
-	limit       *int
-	offset      *int
-	searchStr   *string
+	eqFilter       map[string]string
+	nEqFilter      map[string]string
+	inFilter       map[string]string
+	containsFilter map[string]string
+	nNullFilter    []string
+	sort           []string
+	limit          *int
+	offset         *int
+	searchStr      *string
 	// relational objects query where key must be a dot separated path
 	deepQuery deepQuery
 }
@@ -34,6 +35,7 @@ type keyVal[K, V any] struct {
 
 func None() query {
 	return query{
+		map[string]string{},
 		map[string]string{},
 		map[string]string{},
 		map[string]string{},
@@ -66,6 +68,11 @@ func Neq(k, v string) query {
 
 func (q query) Eq(k, v string) query {
 	q.eqFilter[k] = v
+	return q
+}
+
+func (q query) Contains(k, v string) query {
+	q.containsFilter[k] = v
 	return q
 }
 
@@ -154,6 +161,9 @@ func (q query) asKeyValueV8() map[string]string {
 	for k, v := range q.eqFilter {
 		out[fmt.Sprintf("filter[%s][eq]", k)] = v
 	}
+	for k, v := range q.containsFilter {
+		out[fmt.Sprintf("filter[%s][contains]", k)] = v
+	}
 	for k, v := range q.nEqFilter {
 		out[fmt.Sprintf("filter[%s][neq]", k)] = v
 	}
@@ -181,6 +191,9 @@ func (q query) asKeyValueV9() map[string]string {
 	}
 	for k, v := range q.eqFilter {
 		out[fmt.Sprintf("filter[%s][_eq]", k)] = v
+	}
+	for k, v := range q.containsFilter {
+		out[fmt.Sprintf("filter[%s][_contains]", k)] = v
 	}
 	for k, v := range q.nEqFilter {
 		out[fmt.Sprintf("filter[%s][_neq]", k)] = v
