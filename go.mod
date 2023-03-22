@@ -1,4 +1,4 @@
-module github.com/zdebra/directusapi
+module github.com/antoniobuconjic/directusapi
 
 go 1.18
 
