@@ -190,19 +190,19 @@ func (q query) asKeyValueV9() map[string]string {
 		"limit": "-1",
 	}
 	for k, v := range q.eqFilter {
-		out[fmt.Sprintf("filter[%s][_eq]", k)] = v
+		out[fmt.Sprintf("filter%s[_eq]", parseV9Path(k))] = v
 	}
 	for k, v := range q.containsFilter {
-		out[fmt.Sprintf("filter[%s][_contains]", k)] = v
+		out[fmt.Sprintf("filter%s[_contains]", parseV9Path(k))] = v
 	}
 	for k, v := range q.nEqFilter {
-		out[fmt.Sprintf("filter[%s][_neq]", k)] = v
+		out[fmt.Sprintf("filter%s[_neq]", parseV9Path(k))] = v
 	}
 	for k, v := range q.inFilter {
-		out[fmt.Sprintf("filter[%s][_in]", k)] = v
+		out[fmt.Sprintf("filter%s[_in]", parseV9Path(k))] = v
 	}
 	for _, v := range q.nNullFilter {
-		out[fmt.Sprintf("filter[%s][_nnull]", v)] = "true"
+		out[fmt.Sprintf("filter%s[_nnull]", parseV9Path(v))] = "true"
 	}
 	if len(q.sort) > 0 {
 		out["sort"] = strings.Join(q.sort, ",")
@@ -218,30 +218,31 @@ func (q query) asKeyValueV9() map[string]string {
 }
 
 func (q query) parseDeepQuery(out map[string]string) {
-	parsePath := func(path string) string {
-		split := strings.Split(path, ".")
-		paramPath := ""
-		for _, p := range split {
-			paramPath += "[" + p + "]"
-		}
-		return paramPath
-	}
 	for k, v := range q.deepQuery.eqFilter {
-		out[fmt.Sprintf("deep%s[_eq]", parsePath(k))] = v
+		out[fmt.Sprintf("deep%s[_eq]", parseV9Path(k))] = v
 	}
 	for k, v := range q.deepQuery.nEqFilter {
-		out[fmt.Sprintf("deep%s[_neq]", parsePath(k))] = v
+		out[fmt.Sprintf("deep%s[_neq]", parseV9Path(k))] = v
 	}
 	for k, v := range q.deepQuery.inFilter {
-		out[fmt.Sprintf("deep%s[_in]", parsePath(k))] = v
+		out[fmt.Sprintf("deep%s[_in]", parseV9Path(k))] = v
 	}
 	for _, v := range q.deepQuery.nNullFilter {
-		out[fmt.Sprintf("deep%s[_nnull]", parsePath(v))] = "true"
+		out[fmt.Sprintf("deep%s[_nnull]", parseV9Path(v))] = "true"
 	}
 	if q.deepQuery.limit != nil {
-		out[fmt.Sprintf("deep%s[_limit]", parsePath(q.deepQuery.limit.key))] = fmt.Sprint(q.deepQuery.limit.val)
+		out[fmt.Sprintf("deep%s[_limit]", parseV9Path(q.deepQuery.limit.key))] = fmt.Sprint(q.deepQuery.limit.val)
 	}
 	if q.deepQuery.offset != nil {
-		out[fmt.Sprintf("deep%s[_offset]", parsePath(q.deepQuery.offset.key))] = fmt.Sprint(q.deepQuery.offset.val)
+		out[fmt.Sprintf("deep%s[_offset]", parseV9Path(q.deepQuery.offset.key))] = fmt.Sprint(q.deepQuery.offset.val)
 	}
+}
+
+func parseV9Path(path string) string {
+	split := strings.Split(path, ".")
+	paramPath := ""
+	for _, p := range split {
+		paramPath += "[" + p + "]"
+	}
+	return paramPath
 }
