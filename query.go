@@ -11,6 +11,7 @@ type query struct {
 	inFilter       map[string]string
 	containsFilter map[string]string
 	nNullFilter    []string
+	nullFilter     []string
 	sort           []string
 	limit          *int
 	offset         *int
@@ -24,6 +25,7 @@ type deepQuery struct {
 	nEqFilter   map[string]string
 	inFilter    map[string]string
 	nNullFilter []string
+	nullFilter  []string
 	limit       *keyVal[string, int]
 	offset      *keyVal[string, int]
 }
@@ -41,11 +43,21 @@ func None() query {
 		map[string]string{},
 		[]string{},
 		[]string{},
+		[]string{},
 		nil,
 		nil,
 		nil,
 		deepQuery{},
 	}
+}
+
+func (q query) Null(k string) query {
+	q.nullFilter = append(q.nullFilter, k)
+	return q
+}
+
+func Null(k string) query {
+	return None().Null(k)
 }
 
 func (q query) Nnull(k string) query {
@@ -63,7 +75,7 @@ func (q query) Neq(k, v string) query {
 }
 
 func Neq(k, v string) query {
-	return None().Eq(k, v)
+	return None().Neq(k, v)
 }
 
 func (q query) Eq(k, v string) query {
@@ -173,6 +185,9 @@ func (q query) asKeyValueV8() map[string]string {
 	for _, v := range q.nNullFilter {
 		out[fmt.Sprintf("filter[%s][nnull]", v)] = ""
 	}
+	for _, v := range q.nullFilter {
+		out[fmt.Sprintf("filter[%s][null]", v)] = ""
+	}
 	if len(q.sort) > 0 {
 		out["sort"] = strings.Join(q.sort, ",")
 	}
@@ -204,6 +219,9 @@ func (q query) asKeyValueV9() map[string]string {
 	for _, v := range q.nNullFilter {
 		out[fmt.Sprintf("filter%s[_nnull]", parseV9Path(v))] = "true"
 	}
+	for _, v := range q.nullFilter {
+		out[fmt.Sprintf("filter%s[_null]", parseV9Path(v))] = "true"
+	}
 	if len(q.sort) > 0 {
 		out["sort"] = strings.Join(q.sort, ",")
 	}
@@ -229,6 +247,9 @@ func (q query) parseDeepQuery(out map[string]string) {
 	}
 	for _, v := range q.deepQuery.nNullFilter {
 		out[fmt.Sprintf("deep%s[_nnull]", parseV9Path(v))] = "true"
+	}
+	for _, v := range q.deepQuery.nullFilter {
+		out[fmt.Sprintf("deep%s[_null]", parseV9Path(v))] = "true"
 	}
 	if q.deepQuery.limit != nil {
 		out[fmt.Sprintf("deep%s[_limit]", parseV9Path(q.deepQuery.limit.key))] = fmt.Sprint(q.deepQuery.limit.val)
