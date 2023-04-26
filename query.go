@@ -10,6 +10,7 @@ type query struct {
 	nEqFilter      map[string]string
 	inFilter       map[string]string
 	containsFilter map[string]string
+	betweenFilter  map[string][]string
 	nNullFilter    []string
 	nullFilter     []string
 	sort           []string
@@ -41,6 +42,7 @@ func None() query {
 		map[string]string{},
 		map[string]string{},
 		map[string]string{},
+		map[string][]string{},
 		[]string{},
 		[]string{},
 		[]string{},
@@ -99,6 +101,14 @@ func (q query) In(k, v string) query {
 
 func In(k, v string) query {
 	return None().In(k, v)
+}
+func Between(k, v1, v2 string) query {
+	return None().Between(k, v1, v2)
+}
+
+func (q query) Between(k, v1, v2 string) query {
+	q.betweenFilter[k] = []string{v1, v2}
+	return q
 }
 
 func (q query) SortAsc(sortBy string) query {
@@ -188,6 +198,9 @@ func (q query) asKeyValueV8() map[string]string {
 	for _, v := range q.nullFilter {
 		out[fmt.Sprintf("filter[%s][null]", v)] = ""
 	}
+	for k, v := range q.betweenFilter {
+		out[fmt.Sprintf("filter[%s][between]", k)] = strings.Join(v, ",")
+	}
 	if len(q.sort) > 0 {
 		out["sort"] = strings.Join(q.sort, ",")
 	}
@@ -221,6 +234,9 @@ func (q query) asKeyValueV9() map[string]string {
 	}
 	for _, v := range q.nullFilter {
 		out[fmt.Sprintf("filter%s[_null]", parseV9Path(v))] = "true"
+	}
+	for k, v := range q.betweenFilter {
+		out[fmt.Sprintf("filter%s[_between]", parseV9Path(k))] = strings.Join(v, ",")
 	}
 	if len(q.sort) > 0 {
 		out["sort"] = strings.Join(q.sort, ",")
